@@ -85,7 +85,7 @@ int main(int argc,char* argv[])
 
 ## 2.CD-Record
 
-```sh
+```
 #!/bin/bash
 
 #注意shell中默认定义的变量为global，也就是全局的
