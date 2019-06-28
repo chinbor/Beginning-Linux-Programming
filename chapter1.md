@@ -83,7 +83,7 @@ int main(int argc,char* argv[])
 }
 ```
 
-## 2.CD-Record(copy from Beginning Linux Programming)
+## 2.CD-Record\(copy from Beginning Linux Programming\)
 
 ```
 #!/bin/bash
@@ -116,7 +116,7 @@ get_confirm() {
     read x
     case "$x" in
       y | yes | Y | Yes | YES ) 
-		# shell脚本中0代表的是true
+        # shell脚本中0代表的是true
         return 0;;
       n | no  | N | No  | NO ) 
         echo 
@@ -182,7 +182,7 @@ add_record_tracks() {
         echo "Sorry, no commas allowed"
         continue
       fi
-	  #-n代表字符串不为空则为true
+      #-n代表字符串不为空则为true
       if [ -n "$cdttitle" ] ; then
         if [ "$cdttitle" != "q" ]; then
           insert_track $cdcatnum,$cdtrack,$cdttitle
@@ -204,11 +204,11 @@ add_records() {
   #这一步对主键进行判断
   myTmp=$(grep "^${tmp}," $title_file)
   if [ -n "$myTmp" ]; then
-	echo
-	echo "fuck,you can't type the same catalog"
-	echo
-	get_return
-	return
+    echo
+    echo "fuck,you can't type the same catalog"
+    echo
+    get_return
+    return
   fi
 
   cdcatnum=${tmp%%,*}
@@ -226,12 +226,12 @@ add_records() {
   cdac=${tmp%%,*}
 
   # Check that they want to enter the information
-  
+
   echo About to add new entry
   echo "$cdcatnum $cdtitle $cdtype $cdac"
 
   # If confirmed then append it to the titles file
-  
+
   if get_confirm ; then
     insert_title $cdcatnum,$cdtitle,$cdtype,$cdac
     add_record_tracks
@@ -292,7 +292,7 @@ find_cd() {
   IFS=" "
 
   if [ -z "$cdcatnum" ]; then
-	#无法提取目录字段
+    #无法提取目录字段
     echo "Sorry, could not extract catalog field from $temp_file"
     get_return 
     return 0
@@ -335,7 +335,7 @@ update_cd() {
     echo
     echo "This will re-enter the tracks for $cdtitle"
     get_confirm && {
-	  #-v表示的是对匹配模式取反，也就是不是这个匹配模式的行（这样就能删去cdcatnum对应的行）
+      #-v表示的是对匹配模式取反，也就是不是这个匹配模式的行（这样就能删去cdcatnum对应的行）
       grep -v "^${cdcatnum}," $tracks_file > $temp_file
       mv $temp_file $tracks_file
       echo
@@ -395,7 +395,7 @@ list_tracks() {
     echo no CD selected yet
     return
   else
-	#这里引号中的是一个正则表达式^代表一行的开头,${cdcatnum},表示的是一个变量扩展，可以看书中的p59的${i}_tmp
+    #这里引号中的是一个正则表达式^代表一行的开头,${cdcatnum},表示的是一个变量扩展，可以看书中的p59的${i}_tmp
     grep "^${cdcatnum}," $tracks_file > $temp_file
     num_tracks=$(wc -l $temp_file)
     if [ "$num_tracks" = "0" ]; then
@@ -404,10 +404,10 @@ list_tracks() {
       echo
       echo "$cdtitle :-"
       echo 
-	  #-f和-d连用，指定哪一片区域-d说明分割符为,-f说明第二个以后的区域
+      #-f和-d连用，指定哪一片区域-d说明分割符为,-f说明第二个以后的区域
       cut -f 2- -d , $temp_file 
       echo 
-	  #注意这里是和管道命令一起执行的,前面的作为后面的输入，当PAGER为空，那么就用more来显示内容
+      #注意这里是和管道命令一起执行的,前面的作为后面的输入，当PAGER为空，那么就用more来显示内容
     } | ${PAGER:-more}
     fi
   fi
@@ -472,87 +472,88 @@ exit 0
 
 
 char *menu[] = {
-	"a - add new record",
-	"d - delete record",
-	"q - quit",
-	NULL,
+    "a - add new record",
+    "d - delete record",
+    "q - quit",
+    NULL,
 };
 
 int getchoice(char *greet, char *choice[],FILE *in,FILE *out);
 
 int main()
 {
-	int choice = 0;
-	/* 这里定义两个文件流，与标准输入输出区分开来 */
-	FILE *input;
-	FILE *output;
-	struct termios initial_settings,new_settings;
-	/* 函数isatty()通过检测文件描述符(通过fileno(FILE *stream)转换)是否和终端关联,从而判断检测标准输出是否重定向了 */
-	if(!isatty(fileno(stdout))){
-		fprintf(stderr,"You are not a terminal, OK.\n");
-	}
-	/* 两个不同的文件输入输出流 */
-	input = fopen("/dev/tty","r");
-	output = fopen("/dev/tty","w");
-	if(!input || !output){
-		fprintf(stderr,"Unable to open /dev/tty\n");
-		exit(1);
-	}
-	tcgetattr(fileno(input),&initial_settings);
-	new_settings=initial_settings;
-	/* 关闭标准输入处理 */
-	new_settings.c_lflag &= ~ICANON;
-	/* 关闭回显 */
-	new_settings.c_lflag &= ~ECHO;
-	/* 由于前面设置了非标准模式，所以，可以设置这里的MIN=1，TIME=0，含义是:read调用将一直等待,直到有MIN个字符可以读取时才返回,返回值是读取的字符数量,到达文件尾返回0 */
-	new_settings.c_cc[VMIN] = 1;
-	new_settings.c_cc[VTIME] = 0;
-	/* 本地模式下的启用信号，这里是取消启用信号，这里就是通过清楚这个标志来禁用对像ctrl+c(终止程序)这种特殊字符的处理 */
-	new_settings.c_lflag &= ~ISIG;
-	if(tcsetattr(fileno(input),TCSANOW,&new_settings) != 0){
-		fprintf(stderr,"Could not set attributes\n");
-	}
-	do
-	{
-		choice = getchoice("Please select an action",menu,input,output);
-		/* 会输出到标准输出 stdout，所以这里的输出会被重定向到文件file */
-		printf("You have chosen: %c\n",choice);
-	}while(choice != 'q');
-	/* 恢复原来的终端接口状态 */
-	tcsetattr(fileno(input),TCSANOW,&initial_settings);
-	exit(0);
+    int choice = 0;
+    /* 这里定义两个文件流，与标准输入输出区分开来 */
+    FILE *input;
+    FILE *output;
+    struct termios initial_settings,new_settings;
+    /* 函数isatty()通过检测文件描述符(通过fileno(FILE *stream)转换)是否和终端关联,从而判断检测标准输出是否重定向了 */
+    if(!isatty(fileno(stdout))){
+        fprintf(stderr,"You are not a terminal, OK.\n");
+    }
+    /* 两个不同的文件输入输出流 */
+    input = fopen("/dev/tty","r");
+    output = fopen("/dev/tty","w");
+    if(!input || !output){
+        fprintf(stderr,"Unable to open /dev/tty\n");
+        exit(1);
+    }
+    tcgetattr(fileno(input),&initial_settings);
+    new_settings=initial_settings;
+    /* 关闭标准输入处理 */
+    new_settings.c_lflag &= ~ICANON;
+    /* 关闭回显 */
+    new_settings.c_lflag &= ~ECHO;
+    /* 由于前面设置了非标准模式，所以，可以设置这里的MIN=1，TIME=0，含义是:read调用将一直等待,直到有MIN个字符可以读取时才返回,返回值是读取的字符数量,到达文件尾返回0 */
+    new_settings.c_cc[VMIN] = 1;
+    new_settings.c_cc[VTIME] = 0;
+    /* 本地模式下的启用信号，这里是取消启用信号，这里就是通过清楚这个标志来禁用对像ctrl+c(终止程序)这种特殊字符的处理 */
+    new_settings.c_lflag &= ~ISIG;
+    if(tcsetattr(fileno(input),TCSANOW,&new_settings) != 0){
+        fprintf(stderr,"Could not set attributes\n");
+    }
+    do
+    {
+        choice = getchoice("Please select an action",menu,input,output);
+        /* 会输出到标准输出 stdout，所以这里的输出会被重定向到文件file */
+        printf("You have chosen: %c\n",choice);
+    }while(choice != 'q');
+    /* 恢复原来的终端接口状态 */
+    tcsetattr(fileno(input),TCSANOW,&initial_settings);
+    exit(0);
 }
 
 int getchoice(char *greet, char *choice[],FILE *in,FILE *out)
 {
-	int chosen = 0;
-	int selected;
-	char **option;
-	do{
-		fprintf(out,"Choice: %s\n",greet);
-		option = choice;	
-		while(*option){
-			fprintf(out,"%s\n",*option);
-			option++;
-		}
-		do{
-			selected = fgetc(in);
-			/* 多了一个'\r'字符的检测，是因为前面设置了非标准模式，此时的回车不和换行符映射了，所以需要检测回车符 */
-		}while(selected == '\n' || selected == '\r');
-		option = choice;
-		while(*option){
-			if(selected == *option[0]){
-				chosen = 1;
-				break;
-			}
-			option++;
-		}
-		if(!chosen){
-			fprintf(out,"Incorrect choice, select again\n");
-		}
-	}while(!chosen);
-	return selected;
+    int chosen = 0;
+    int selected;
+    char **option;
+    do{
+        fprintf(out,"Choice: %s\n",greet);
+        option = choice;    
+        while(*option){
+            fprintf(out,"%s\n",*option);
+            option++;
+        }
+        do{
+            selected = fgetc(in);
+            /* 多了一个'\r'字符的检测，是因为前面设置了非标准模式，此时的回车不和换行符映射了，所以需要检测回车符 */
+        }while(selected == '\n' || selected == '\r');
+        option = choice;
+        while(*option){
+            if(selected == *option[0]){
+                chosen = 1;
+                break;
+            }
+            option++;
+        }
+        if(!chosen){
+            fprintf(out,"Incorrect choice, select again\n");
+        }
+    }while(!chosen);
+    return selected;
 }
 ```
+
 
 
