@@ -83,7 +83,7 @@ int main(int argc,char* argv[])
 }
 ```
 
-## 2.CD-Record
+## 2.CD-Record(copy from Beginning Linux Programming)
 
 ```
 #!/bin/bash
@@ -462,5 +462,97 @@ echo "Finished"
 exit 0
 ```
 
+## 3.用户交互以及重定向输出不想让用户看见的小demo（利用termios结构以及/dev/tty文件实现）
+
+```c
+#include <stdio.h>
+#include <unistd.h>
+#include <stdlib.h>
+#include <termios.h>
+
+
+char *menu[] = {
+	"a - add new record",
+	"d - delete record",
+	"q - quit",
+	NULL,
+};
+
+int getchoice(char *greet, char *choice[],FILE *in,FILE *out);
+
+int main()
+{
+	int choice = 0;
+	/* 这里定义两个文件流，与标准输入输出区分开来 */
+	FILE *input;
+	FILE *output;
+	struct termios initial_settings,new_settings;
+	/* 函数isatty()通过检测文件描述符(通过fileno(FILE *stream)转换)是否和终端关联,从而判断检测标准输出是否重定向了 */
+	if(!isatty(fileno(stdout))){
+		fprintf(stderr,"You are not a terminal, OK.\n");
+	}
+	/* 两个不同的文件输入输出流 */
+	input = fopen("/dev/tty","r");
+	output = fopen("/dev/tty","w");
+	if(!input || !output){
+		fprintf(stderr,"Unable to open /dev/tty\n");
+		exit(1);
+	}
+	tcgetattr(fileno(input),&initial_settings);
+	new_settings=initial_settings;
+	/* 关闭标准输入处理 */
+	new_settings.c_lflag &= ~ICANON;
+	/* 关闭回显 */
+	new_settings.c_lflag &= ~ECHO;
+	/* 由于前面设置了非标准模式，所以，可以设置这里的MIN=1，TIME=0，含义是:read调用将一直等待,直到有MIN个字符可以读取时才返回,返回值是读取的字符数量,到达文件尾返回0 */
+	new_settings.c_cc[VMIN] = 1;
+	new_settings.c_cc[VTIME] = 0;
+	/* 本地模式下的启用信号，这里是取消启用信号，这里就是通过清楚这个标志来禁用对像ctrl+c(终止程序)这种特殊字符的处理 */
+	new_settings.c_lflag &= ~ISIG;
+	if(tcsetattr(fileno(input),TCSANOW,&new_settings) != 0){
+		fprintf(stderr,"Could not set attributes\n");
+	}
+	do
+	{
+		choice = getchoice("Please select an action",menu,input,output);
+		/* 会输出到标准输出 stdout，所以这里的输出会被重定向到文件file */
+		printf("You have chosen: %c\n",choice);
+	}while(choice != 'q');
+	/* 恢复原来的终端接口状态 */
+	tcsetattr(fileno(input),TCSANOW,&initial_settings);
+	exit(0);
+}
+
+int getchoice(char *greet, char *choice[],FILE *in,FILE *out)
+{
+	int chosen = 0;
+	int selected;
+	char **option;
+	do{
+		fprintf(out,"Choice: %s\n",greet);
+		option = choice;	
+		while(*option){
+			fprintf(out,"%s\n",*option);
+			option++;
+		}
+		do{
+			selected = fgetc(in);
+			/* 多了一个'\r'字符的检测，是因为前面设置了非标准模式，此时的回车不和换行符映射了，所以需要检测回车符 */
+		}while(selected == '\n' || selected == '\r');
+		option = choice;
+		while(*option){
+			if(selected == *option[0]){
+				chosen = 1;
+				break;
+			}
+			option++;
+		}
+		if(!chosen){
+			fprintf(out,"Incorrect choice, select again\n");
+		}
+	}while(!chosen);
+	return selected;
+}
+```
 
 
