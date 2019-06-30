@@ -287,3 +287,86 @@ int char_to_terminal(int char_to_write)
 ```
 
 * 注意这里可以使用 **.filename**执行,也可以使用 **./filename > file 2>&1**将标准输出和标准错误输出重定向到file文件,这样就可以隐藏一些内容使用户看不见，而只看见能够交互的内容
+
+
+## 4. 利用curses函数库实现的多窗口
+
+```c
+#include <unistd.h>
+#include <stdlib.h>
+#include <curses.h>
+
+int main()
+{
+	WINDOW *new_window_ptr;
+	WINDOW *popup_window_ptr;
+	int x_loop;
+	int y_loop;
+	char a_letter = 'a';
+	/* 这里的屏幕初始化会将LINES和COLS的值也初始化了，初始化成屏幕的大小 */
+	initscr();
+	move(5,5);
+	printw("%s","Testing multiple windows");
+	refresh();
+	for(y_loop = 0;y_loop < LINES-1;y_loop++){
+		for(x_loop = 0;x_loop < COLS-1;x_loop++){
+			mvwaddch(stdscr,y_loop,x_loop,a_letter);
+			a_letter++;
+			if(a_letter > 'z') a_letter = 'a';
+		}
+	}
+	/* Update the screen(stdscr) */
+	refresh();
+	sleep(2);
+	/* 创建一个新窗口 */
+	new_window_ptr = newwin(10,20,5,5);
+	mvwprintw(new_window_ptr,2,2,"%s","Hello World");
+	mvwprintw(new_window_ptr,5,2,"%s","Notice how very long lines wrap inside the window");
+	wrefresh(new_window_ptr);
+	sleep(2);
+	/* 更新stdscr窗口显示的内容 */
+	a_letter = '0';
+	for(y_loop = 0;y_loop < LINES-1;y_loop++){
+		for(x_loop = 0;x_loop < COLS-1;x_loop++){
+			mvwaddch(stdscr,y_loop,x_loop,a_letter);
+			a_letter++;
+			if(a_letter > '9') a_letter = '0';
+		}
+	}
+	/* Update the screen(stdscr)，会覆盖new_windos_ptr指向的窗口 */
+	refresh();
+	sleep(2);
+	/* 这一句话并不会将new_windos_ptr指向的窗口给放在前面（stdscr的前面） */
+	wrefresh(new_window_ptr);
+	sleep(2);
+	/* 必须先通过touchwin告诉curses程序窗口内容更新,然后才能刷新然后显示new_window_ptr窗口 */
+	touchwin(new_window_ptr);
+	wrefresh(new_window_ptr);
+	sleep(2);
+	/* 建一个新窗口 */
+	popup_window_ptr = newwin(10,20,8,8);
+	box(popup_window_ptr,'|','-');
+	mvwprintw(popup_window_ptr,5,2,"%s","Pop Up Window!");
+	wrefresh(popup_window_ptr);
+	sleep(2);
+	/* 这里就是窗口的清除，关闭在屏幕上的轮流显示 */
+	touchwin(new_window_ptr);
+	wrefresh(new_window_ptr);
+	sleep(2);
+	wclear(new_window_ptr);
+	wrefresh(new_window_ptr);
+	sleep(2);
+	delwin(new_window_ptr);
+	
+	touchwin(popup_window_ptr);
+	wrefresh(popup_window_ptr);
+	sleep(2);
+	delwin(popup_window_ptr);
+
+	touchwin(stdscr);
+	refresh();
+	sleep(2);
+	endwin();
+	exit(EXIT_SUCCESS);
+}
+```
