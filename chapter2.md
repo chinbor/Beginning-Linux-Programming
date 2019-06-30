@@ -289,7 +289,10 @@ int char_to_terminal(int char_to_write)
 * 注意这里可以使用 **.filename**执行,也可以使用 **./filename > file 2>&1**将标准输出和标准错误输出重定向到file文件,这样就可以隐藏一些内容使用户看不见，而只看见能够交互的内容
 
 
-## 4. 利用curses函数库实现的多窗口
+## 4. 利用curses函数库实现的多窗口和子窗口
+
+* 多窗口 
+
 
 ```c
 #include <unistd.h>
@@ -370,3 +373,57 @@ int main()
 	exit(EXIT_SUCCESS);
 }
 ```
+* 子窗口 
+
+
+```c
+#include <unistd.h>
+#include <stdlib.h>
+#include <curses.h>
+
+int main()
+{
+	WINDOW *sub_window_ptr;
+	int x_loop;
+	int y_loop;
+	int counter;
+	char a_letter = '1';
+
+	initscr();
+
+	for(y_loop = 0;y_loop < LINES - 1;y_loop++){
+		for(x_loop = 0;x_loop < COLS - 1;x_loop++){
+			mvwaddch(stdscr,y_loop,x_loop,a_letter);
+			a_letter++;
+			if(a_letter > '9') a_letter = '1';
+		}
+	}
+	/* 新建一个子窗口,同时设置其可卷动 */
+	sub_window_ptr = subwin(stdscr,10,20,10,10);
+	scrollok(sub_window_ptr,1);
+//	box(sub_window_ptr,'|','-');
+	/* 重点说一下touchwin函数，使用场景是当窗口中内容无改变的时候调用他，然后刷新才会重绘窗口，否则，若窗口五内容变化，你直接调用刷新窗口函数，并不会重绘窗口 */
+	touchwin(stdscr);
+	refresh();
+	sleep(1);
+
+	werase(sub_window_ptr);
+	mvwprintw(sub_window_ptr,2,0,"%s","This window will now scroll");
+	wrefresh(sub_window_ptr);
+	sleep(1);
+
+	for(counter = 1; counter < 10; counter++){
+		wprintw(sub_window_ptr,"%s","This text is both wrapping and scrolling.");
+		wrefresh(sub_window_ptr);
+		sleep(1);
+	}
+	delwin(sub_window_ptr);
+	touchwin(stdscr);
+	refresh();
+	sleep(1);
+
+	endwin();
+	exit(EXIT_SUCCESS);
+}
+```
+* 稍微说一下子窗口和多窗口的区别:子窗口没有自己独立的屏幕字符存储空间，他们和其父窗口共享一字符存储空间。对子窗口的任意修改都会反映到父窗口，所以删除子窗口，屏幕显示不会改变。而其他新窗口的删除，屏幕显示会发生变化，具体请自己实现上面代码然后观察区别.还有一点就是touchwin函数，他表示的意思就是当屏幕没有发生内容上的修改（变化）这时如果调用刷新函数（refresh或者wrefresh）并不会重绘窗口，若在调用刷新函数之前调用了touchwin函数，那么不管内容是否修改，都会重绘窗口.还有一点就是使用子窗口的一个限制条件，在应用程序刷新屏幕之前必须先对其父窗口调用touchwin函数。
